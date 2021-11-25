@@ -32,7 +32,11 @@ function chart(canvas, data) {
         x: (clientX - left) * 2,
      }
  }
+ function mouseleave() {
+     proxy.mouse = null
+ }
  canvas.addEventListener('mousemove',mousemove)
+ canvas.addEventListener('mouseleave',mouseleave)
 
  function clear() {
      ctx.clearRect(0,0, DPI_WIDTH, DPI_HEIGHT)
@@ -67,6 +71,7 @@ function chart(canvas, data) {
      destroy() {
          cancelAnimationFrame(raf)
          canvas.removeEventListener('mousemove', mousemove)
+         canvas.removeEventListener('mouseleave', mouseleave)
      }
     }
 } // End of Chart
