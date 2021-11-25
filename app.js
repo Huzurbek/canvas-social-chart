@@ -10,35 +10,63 @@ const ROWS_COUNT = 5
 
 function chart(canvas, data) {
  const ctx = canvas.getContext('2d')
+ let raf
  canvas.style.width = WIDTH + 'px'
  canvas.style.height = HEIGHT + 'px'
  canvas.width = DPI_WIDTH
  canvas.height = DPI_HEIGHT
 
-const [yMin, yMax] = computeBoundaries(data)
+ const proxy = new Proxy({}, {
+     set(...args) {
+       const result = Reflect.set(...args)
+      raf = requestAnimationFrame(paint)
+       return result
+     },
+ })
 
-const yRatio = VIEW_HEIGHT / (yMax - yMin) //1.2030075187969924
-const xRatio = VIEW_WIDTH /(data.columns[0].length - 2) //10.81081081081081
+ function mousemove({clientX, clientY}) {
+     proxy.mouse = {
+        x: clientX
+     }
+ }
+ canvas.addEventListener('mousemove',mousemove)
 
-const yData = data.columns.filter((col) => data.types[col[0]] === 'line') // returns two array which line [['y0', 37, 20, 32, 39, 3,....],['y1', 22, 12, 30, 40, 33,...]]
-const xData = data.columns.filter((col) => data.types[col[0]] !== 'line')[0]
+ function clear() {
+     ctx.clearRect(0,0, DPI_WIDTH, DPI_HEIGHT)
+ }
+
+ function paint() {
+     clear()
+     const [yMin, yMax] = computeBoundaries(data)
+
+     const yRatio = VIEW_HEIGHT / (yMax - yMin) //1.2030075187969924
+     const xRatio = VIEW_WIDTH /(data.columns[0].length - 2) //10.81081081081081
+
+     const yData = data.columns.filter((col) => data.types[col[0]] === 'line') // returns two array which line [['y0', 37, 20, 32, 39, 3,....],['y1', 22, 12, 30, 40, 33,...]]
+     const xData = data.columns.filter((col) => data.types[col[0]] !== 'line')[0]
 
 // Painting
-yAxis(ctx, yMin, yMax)
-xAxis(ctx, xData, xRatio)
+     yAxis(ctx, yMin, yMax)
+     xAxis(ctx, xData, xRatio)
 
-    // console.log("first ", yData)
-    // console.log("second ", yData.map(toCoords(xRatio, yRatio)))
+     yData.map(toCoords(xRatio, yRatio)).forEach((coords, idx) => {
+         const color = data.colors[yData[idx][0]]
+         line(ctx, coords, {color})
+     })
+ }
 
 
 
-yData.map(toCoords(xRatio, yRatio)).forEach((coords, idx) => {
-    console.log(`Inside Y data id ${idx} `,coords[0])
-const color = data.colors[yData[idx][0]]
-line(ctx, coords, {color})
-})
-
+    return {
+     destroy() {
+         cancelAnimationFrame(raf)
+         canvas.removeEventListener('mousemove', mousemove)
+     }
+    }
 } // End of Chart
+
+
+
   // [['y0', 37, 20, 32, 39, 3,....],['y1', 22, 12, 30, 40, 33,...]] keldi toCoordsga
 // ToCoords functionda  col1=[[0, 315],[10, 335],[21, 321]....]    col2=[[0, 333],[10, 345],[21, 323],....]
 function toCoords(xRatio, yRatio) {
@@ -78,6 +106,7 @@ function xAxis(ctx, data, xRatio) {
 }
 
 function line(ctx, coords, {color}) {
+    console.log("color info ", typeof color)
     ctx.beginPath()
     ctx.lineWidth = 4
     ctx.strokeStyle = color
