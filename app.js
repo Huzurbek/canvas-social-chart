@@ -27,8 +27,9 @@ function chart(canvas, data) {
  })
 
  function mousemove({clientX, clientY}) {
+     const { left } = canvas.getBoundingClientRect()
      proxy.mouse = {
-        x: clientX
+        x: (clientX - left) * 2,
      }
  }
  canvas.addEventListener('mousemove',mousemove)
@@ -103,20 +104,26 @@ function xAxis(ctx, data, xRatio, {mouse}) {
     const colsCount = 6
     const step = Math.round(data.length / colsCount)
     ctx.beginPath()
-    for (let i = 1; i < data.length; i += step) {
-        const text = toDate(data[i])
+    for (let i = 1; i < data.length; i ++) {
         const x = i * xRatio
-        ctx.fillText(text.toString(), x, DPI_HEIGHT - 10)
 
+        if((i - 1) % step === 0) {
+            const text = toDate(data[i])
+            ctx.fillText(text.toString(), x, DPI_HEIGHT - 10)
+        }
         if (isOver(mouse, x, data.length)) {
-            console.log('over')
+           ctx.save()
+           ctx.moveTo(x, PADDING / 2)
+           ctx.lineTo(x, DPI_HEIGHT - PADDING)
+           ctx.restore()
         }
     }
+    ctx.stroke()
     ctx.closePath()
 }
 
 function line(ctx, coords, {color}) {
-    console.log("color info ", typeof color)
+
     ctx.beginPath()
     ctx.lineWidth = 4
     ctx.strokeStyle = color
