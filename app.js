@@ -16,20 +16,46 @@ function chart(canvas, data) {
  canvas.height = DPI_HEIGHT
 
 const [yMin, yMax] = computeBoundaries(data)
-const yRatio = VIEW_HEIGHT / (yMax - yMin)
-const xRatio = VIEW_WIDTH /(data.columns[0].length - 2)
 
-// === y axis
-const step = VIEW_HEIGHT / ROWS_COUNT
-const textStep = (yMax - yMin) / ROWS_COUNT
+const yRatio = VIEW_HEIGHT / (yMax - yMin) //1.2030075187969924
+const xRatio = VIEW_WIDTH /(data.columns[0].length - 2) //10.81081081081081
+
+const yData = data.columns.filter((col) => data.types[col[0]] === 'line') // returns two array which line [['y0', 37, 20, 32, 39, 3,....],['y1', 22, 12, 30, 40, 33,...]]
+const xData = data.columns.filter((col) => data.types[col[0]] !== 'line')[0]
+
+// Painting
+yAxis(ctx, yMin, yMax)
+xAxis(ctx, xData, xRatio)
+
+    // console.log("first ", yData)
+    // console.log("second ", yData.map(toCoords(xRatio, yRatio)))
 
 
+
+yData.map(toCoords(xRatio, yRatio)).forEach((coords, idx) => {
+    console.log(`Inside Y data id ${idx} `,coords[0])
+const color = data.colors[yData[idx][0]]
+line(ctx, coords, {color})
+})
+
+} // End of Chart
+  // [['y0', 37, 20, 32, 39, 3,....],['y1', 22, 12, 30, 40, 33,...]] keldi toCoordsga
+// ToCoords functionda  col1=[[0, 315],[10, 335],[21, 321]....]    col2=[[0, 333],[10, 345],[21, 323],....]
+function toCoords(xRatio, yRatio) {
+    return (col) =>
+        // console.log("inside col ", col.map((y, i) => [Math.floor((i - 1 )* xRatio ), Math.floor(DPI_HEIGHT - PADDING -y * yRatio)]).filter((_, i) => i !== 0))
+        col.map((y, i) => [Math.floor((i - 1) * xRatio),Math.floor(DPI_HEIGHT - PADDING - y * yRatio),]).filter((_, i) => i !== 0)
+}
+
+function yAxis(ctx, yMin, yMax) {
+    const step = VIEW_HEIGHT / ROWS_COUNT  // 320 / 5 =64(step is 64)
+    const textStep = (yMax - yMin) / ROWS_COUNT // (278-12)/5=53.2 (textStep is 53.2)
     ctx.beginPath()
     ctx.strokeStyle = '#bbb'
     ctx.font = 'normal 20px Helvetica,sans-serif'
     ctx.fillStyle = '#96a2aa'
     for( let i = 1; i <= ROWS_COUNT; i++){
-        const y = step * i
+        const y = step * i // (step(64) * i(1,2,3,4,5)) = (64,128,192,256,320)->y
         const text = Math.round(yMax - textStep * i)
         ctx.fillText(text.toString(), 5, y + PADDING - 10)
         ctx.moveTo(0, y + PADDING)
@@ -37,23 +63,18 @@ const textStep = (yMax - yMin) / ROWS_COUNT
     }
     ctx.stroke()
     ctx.closePath()
-    // ====
+}
 
-    data.columns.forEach((col) => {
-        const name = col[0]
-        if (data.types[name] === 'line') {
-           const coords = col
-               .map((y, i) => [
-                 Math.floor((i - 1) * xRatio),
-                 Math.floor(DPI_HEIGHT - PADDING - y * yRatio),
-               ])
-               .filter((_, i) => i !== 0)
-
-            const color = data.colors[name]
-            line(ctx, coords, {color})
-        }
-    })
-
+function xAxis(ctx, data, xRatio) {
+    const colsCount = 6
+    const step = Math.round(data.length / colsCount)
+    ctx.beginPath()
+    for (let i = 1; i < data.length; i += step) {
+        const text = toDate(data[i])
+        const x = i * xRatio
+        ctx.fillText(text.toString(), x, DPI_HEIGHT - 10)
+    }
+    ctx.closePath()
 }
 
 function line(ctx, coords, {color}) {
@@ -61,7 +82,9 @@ function line(ctx, coords, {color}) {
     ctx.lineWidth = 4
     ctx.strokeStyle = color
     for(const [x, y] of coords) {
-        // ctx.lineTo(x, DPI_HEIGHT - PADDING - y * yRatio)
+        // console.log('what is x-',x)
+        // console.log('what is y-',y)
+
         ctx.lineTo(x, y)
     }
     ctx.stroke()
@@ -73,22 +96,21 @@ chart(document.getElementById('chart'),getChartData())
 function computeBoundaries({columns, types}) {
     let min
     let max
-
     columns.forEach(col => {
         if (types[col[0]] !== 'line'){
             return
         }
-            if (typeof min !== 'number') min = col[1]
-            if (typeof max !== 'number') max = col[1]
 
-            if (min > col[1]) min = col[1]
-            if (max < col[1]) max = col[1]
+        if (typeof min !== 'number') min = col[1]
+        if (typeof max !== 'number') max = col[1]
 
-            for(let i = 2; i < col.length; i++){
-                if (min > col[i]) min = col[i]
-                if (max < col[i]) max = col[i]
-            }
+        if (min > col[1]) min = col[1]
+        if (max < col[1]) max = col[1]
 
+        for(let i = 2; i < col.length; i++){
+            if (min > col[i]) min = col[i]
+            if (max < col[i]) max = col[i]
+        }
     })
     return [min, max]
 }
@@ -461,4 +483,28 @@ function getChartData() {
             },
         },
     ][0]
+}
+//Date formating:
+function toDate(timestap) {
+    const shortMonths = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+    ]
+    // const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const date = new Date(timestap)
+    // if (withDay) {
+    //     return `${shortDays[date.getDay()]}, ${shortMonths[date.getMonth()]}
+    //     ${date.getDate()}`
+    // }
+    return `${shortMonths[date.getMonth()]} ${date.getDate()}`
 }
