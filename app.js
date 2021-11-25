@@ -7,6 +7,8 @@ const VIEW_HEIGHT = DPI_HEIGHT - PADDING * 2
 const VIEW_WIDTH = DPI_WIDTH
 const ROWS_COUNT = 5
 
+const tgChart = chart(document.getElementById('chart'),getChartData())
+tgChart.init()
 
 function chart(canvas, data) {
  const ctx = canvas.getContext('2d')
@@ -47,7 +49,7 @@ function chart(canvas, data) {
 
 // Painting
      yAxis(ctx, yMin, yMax)
-     xAxis(ctx, xData, xRatio)
+     xAxis(ctx, xData, xRatio, proxy)
 
      yData.map(toCoords(xRatio, yRatio)).forEach((coords, idx) => {
          const color = data.colors[yData[idx][0]]
@@ -58,6 +60,9 @@ function chart(canvas, data) {
 
 
     return {
+     init() {
+         paint()
+     },
      destroy() {
          cancelAnimationFrame(raf)
          canvas.removeEventListener('mousemove', mousemove)
@@ -79,6 +84,7 @@ function yAxis(ctx, yMin, yMax) {
     const step = VIEW_HEIGHT / ROWS_COUNT  // 320 / 5 =64(step is 64)
     const textStep = (yMax - yMin) / ROWS_COUNT // (278-12)/5=53.2 (textStep is 53.2)
     ctx.beginPath()
+    ctx.lineWidth = 1
     ctx.strokeStyle = '#bbb'
     ctx.font = 'normal 20px Helvetica,sans-serif'
     ctx.fillStyle = '#96a2aa'
@@ -93,7 +99,7 @@ function yAxis(ctx, yMin, yMax) {
     ctx.closePath()
 }
 
-function xAxis(ctx, data, xRatio) {
+function xAxis(ctx, data, xRatio, {mouse}) {
     const colsCount = 6
     const step = Math.round(data.length / colsCount)
     ctx.beginPath()
@@ -101,6 +107,10 @@ function xAxis(ctx, data, xRatio) {
         const text = toDate(data[i])
         const x = i * xRatio
         ctx.fillText(text.toString(), x, DPI_HEIGHT - 10)
+
+        if (isOver(mouse, x, data.length)) {
+            console.log('over')
+        }
     }
     ctx.closePath()
 }
@@ -120,7 +130,7 @@ function line(ctx, coords, {color}) {
     ctx.closePath()
 }
 
-chart(document.getElementById('chart'),getChartData())
+
 
 function computeBoundaries({columns, types}) {
     let min
@@ -536,4 +546,12 @@ function toDate(timestap) {
     //     ${date.getDate()}`
     // }
     return `${shortMonths[date.getMonth()]} ${date.getDate()}`
+}
+
+function isOver(mouse, x, length) {
+    if (!mouse) {
+        return false
+    }
+    const width = DPI_WIDTH / length
+    return Math.abs(x - mouse.x) < width / 2
 }
