@@ -6,6 +6,7 @@ const DPI_HEIGHT = HEIGHT * 2
 const VIEW_HEIGHT = DPI_HEIGHT - PADDING * 2
 const VIEW_WIDTH = DPI_WIDTH
 const ROWS_COUNT = 5
+const CIRCLE_RADIUS = 10
 
 const tgChart = chart(document.getElementById('chart'),getChartData())
 tgChart.init()
@@ -59,6 +60,13 @@ function chart(canvas, data) {
      yData.map(toCoords(xRatio, yRatio)).forEach((coords, idx) => {
          const color = data.colors[yData[idx][0]]
          line(ctx, coords, {color})
+
+         for ( const [x, y] of coords) {
+             if (isOver(proxy.mouse, x, coords.length)) {
+                 circle(ctx, [x, y], color)
+                 break;
+             }
+         }
      })
  }
 
@@ -138,6 +146,16 @@ function line(ctx, coords, {color}) {
 
         ctx.lineTo(x, y)
     }
+    ctx.stroke()
+    ctx.closePath()
+}
+
+function circle(ctx, [x, y], color) {
+    ctx.beginPath()
+    ctx.strokeStyle = color
+    ctx.fillStyle = '#fff'
+    ctx.arc(x, y, CIRCLE_RADIUS, 0, Math.PI * 2)
+    ctx.fill()
     ctx.stroke()
     ctx.closePath()
 }
